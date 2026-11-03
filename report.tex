@@ -16,22 +16,22 @@
 % ============================================================================
 % METADATA
 % ============================================================================
-\title{Your Report Title Here}
+\title{Social Context and Judgment Revision in Language Models}
 
 \author{
   \textbf{Hannah Sun}\\
-  \texttt{yuerans@uw.edu}
+  \texttt{yuerans@uw.edu}\\
   % Optional: Add institution/affiliation (recommended for arXiv mode):
-  % \\
-  % Your Institution
+  University of Washington
   % Add more authors (including mentors) with \and:
-  % \and
-  % \textbf{Mentor Name}\\
-  % \texttt{mentor@example.org}\\
+  \and
+  \textbf{Emilio Barkett}\\
+  \texttt{eab2291@columbia.edu}\\
+  Columbia University
   % Mentor Institution
 }
 
-\sparround{Fall 2025}
+\sparround{Fall 2026}
 
 % ============================================================================
 % DOCUMENT BEGINS
@@ -49,11 +49,29 @@
 % mention the specific threat model, vector, or vulnerability. Keep this
 % accessible to readers outside your subfield. No footnotes or citations.
 \begin{abstract}
-Your abstract goes here. Describe your research question, why it matters for AI safety, your approach, and preliminary findings (100-200 words).
+When AI agents review each other's code or compare research findings, they
+must evaluate conflicting judgments. Reliable collaboration requires correcting
+errors without abandoning correct answers in response to misleading arguments.
+We study how social context affects judgment revision in large language models
+(LLMs), varying whether prior answers are described as publicly shared and
+whether peer counterarguments use neutral or controlling language.
+
+Using counterfactual replay, we hold questions and counterarguments fixed while
+varying contextual framing. Pilots with Llama 3.1 8B, Gemma 3 12B, and Qwen3.5 9B
+show that controlling language increases peer-answer adoption in Llama and Qwen,
+while public disclosure has little overall effect. The models differ in their
+responses to source attribution and their susceptibility to harmful revisions;
+Gemma's limited sample does not support a detailed comparison. In re-ask controls,
+telling Llama its prior answer was shared increases spontaneous answer changes
+relative to describing it as recorded.
+
+Follow-up experiments will test whether attribution and disclosure effects
+persist across source identities and alternative prompt formulations.
+
 \end{abstract}
 
 % Keywords (optional but recommended, especially for arXiv submission)
-\keywords{alignment research \and machine learning \and AI safety}
+\keywords{AI alignment \and multi-agent systems \and judgment revision \and social influence \and language models}
 
 % ============================================================================
 % INTRODUCTION (100-350 words)
@@ -65,8 +83,35 @@ Your abstract goes here. Describe your research question, why it matters for AI 
 % project—what would you need to demonstrate or discover for this research
 % to be valuable?
 \section{Introduction}
+In a team of AI coding agents, one agent might implement a function while another
+reviews it and proposes a correction. In a research workflow, agents might
+consult different sources and reach conflicting conclusions. In both cases,
+an agent must assess whether another agent's reasoning warrants revising its
+own judgment. Correcting an error can improve the team's output, but deferring
+to a forceful yet misleading argument can introduce new errors.
 
-Introduce your research problem and explain its significance for AI safety. Describe the gap you're filling or risk you're addressing. Explain what success would look like for this project.
+We examine whether social cues affect this revision process. Our experiments
+vary two factors: whether a model's initial answer is described as private or
+publicly shared, and whether a conflicting argument uses neutral or controlling
+language. The design draws on research on social influence and psychological
+reactance \cite{bito2026normative,reynoldstylus2026reactance}, without assuming
+that similar behavior in LLMs reflects the same psychological mechanisms.
+The question also relates to sycophancy: agreement with another party can come
+at the expense of accuracy. Here, we study responses to peer agents rather
+than agreement with a user's stated beliefs.
+
+Prior work on LLM conformity and multi-agent debate distinguishes spontaneous
+answer changes from peer influence and reasoning-based persuasion
+\cite{hao2026flips,hu2026speakerfree}. Source identity and anonymization can also
+affect judgment revision \cite{choi2026identity}, and persuasive strategies can
+influence model behavior \cite{meincke2026persuading,bozdag2026persuade}.
+It remains unclear how directive language interacts with source attribution
+and the public disclosure of an earlier answer.
+
+We use controlled counterfactual replay on multi-hop question-answering tasks
+to compare responses to the same counterargument under different social cues.
+We distinguish beneficial corrections from harmful revisions to assess when
+these cues improve accuracy and when they lead models to abandon correct answers.
 
 % ============================================================================
 % METHODOLOGY (200-500 words)
@@ -78,8 +123,6 @@ Introduce your research problem and explain its significance for AI safety. Desc
 % arguments or proofs. For policy research, describe your research design,
 % data sources, and analytical approach.
 \section{Methodology}
-
-Describe your research approach and methods.
 
 % Example subsections (optional):
 % \subsection{Experimental Setup}
@@ -109,6 +152,53 @@ Describe your research approach and methods.
 %   \end{tabular}
 % \end{table}
 
+\subsection{Experimental Framework}
+We use counterfactual replay to compare how LLMs respond to conflicting answers
+under controlled conversational conditions. Independent agents first answer
+the same question without access to one another's responses. We identify
+\emph{disagreement events}, where a recipient model and a peer produce different
+answers, and replay each event across conditions. The question and substantive
+counterargument remain fixed; only the contextual framing changes.
+
+The primary design crosses prior-answer disclosure (private versus public)
+with counterargument framing (neutral versus controlling). In public conditions,
+the recipient is told that its previous answer was shared with other agents.
+Controlling counterarguments direct the recipient to accept the alternative
+answer, while neutral counterarguments present the disagreement without that
+pressure.
+
+Following work separating spontaneous answer changes from peer-induced revision
+\cite{hao2026flips,hu2026speakerfree}, we include controls that remove speaker
+attribution, provide only the peer's proposed answer, or ask the recipient to
+reconsider without a counterargument. A recorded-answer condition separates
+acknowledgment of a prior response from its stated public disclosure. We also
+test an independence-oriented persona to examine whether emphasizing independent
+judgment changes responses to controlling language.
+
+\subsection{Datasets and Models}
+Our initial pilot used ARC-Challenge \cite{clark2018arc} with Llama 3.1 8B
+Instruct. We then moved to HotpotQA \cite{yang2018hotpotqa}, where questions
+require integrating information across multiple supporting passages. These
+tasks allow us to examine disagreements involving multi-step reasoning.
+
+The latest pilots evaluate Llama 3.1 8B, Gemma 3 12B, and Qwen3.5 9B on a common
+pool of 1,200 questions balanced across six question categories. Each model
+generates its own disagreement events, which we replay under 18 conditions.
+After screening and exclusions, the main comparisons include 131 events for
+Llama, 18 for Gemma, and 84 for Qwen. Before final exclusions, the runs produced
+24,300, 3,240, and 15,120 replay responses, respectively.
+
+\subsection{Evaluation}
+Our primary outcome is \emph{answer adoption}: whether the recipient replaces
+its initial answer with the peer's proposed answer. We estimate framing and
+disclosure effects, including their interaction, through event-level comparisons
+with cluster bootstrap confidence intervals.
+
+We separately measure \emph{beneficial corrections}, where an incorrect answer
+is replaced by a correct one, and \emph{harmful revisions}, where a correct
+answer is replaced by an incorrect alternative. Re-ask controls measure answer
+instability in the absence of an external counterargument.
+
 % ============================================================================
 % PRELIMINARY RESULTS (200-500 words)
 % ============================================================================
@@ -118,8 +208,62 @@ Describe your research approach and methods.
 % analysis. Use subheadings if helpful. It's normal for midterm results to be
 % incomplete.
 \section{Preliminary Results}
+We initially expected controlling language to produce resistance to a peer's
+answer. Instead, it increased adoption in both Llama and Qwen. Public disclosure
+had little overall effect on adoption across the three models, providing no
+clear evidence that publicly sharing an answer makes a model more resistant
+to disagreement. Gemma's estimated framing effect was small (+1.7 percentage
+points), but its 18 usable events are insufficient for a detailed behavioral
+comparison. Table~\ref{tab:model-comparison} summarizes Llama and Qwen.
 
-Present your findings so far. Use subsections and visualizations as appropriate.
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \caption{Pilot behavior in Llama and Qwen. Adoption effects are measured in
+  percentage points (pp); harmful revision rates are conditional on the initial
+  answer being correct. Ranges summarize the reported rates across disclosure
+  conditions. Each model generated its own disagreement events, so these are
+  descriptive comparisons rather than estimates on a matched event set.}
+  \label{tab:model-comparison}
+  \begin{tabular}{@{}p{0.40\linewidth}p{0.27\linewidth}p{0.27\linewidth}@{}}
+    \toprule
+    Measure & Llama 3.1 8B & Qwen3.5 9B \\
+    \midrule
+    Usable disagreement events & 131 & 84 \\
+    Adoption increase under controlling language & +12.8 pp & +16.7 pp \\
+    95\% confidence interval & [9.1, 16.4] pp & [11.7, 22.4] pp \\
+    Harmful revisions, neutral framing & 71--72\% & 19--20\% \\
+    Harmful revisions, controlling framing & 86--89\% & 39--40\% \\
+    Effect of naming a peer on the controlling-language effect & Amplifies by 5.3 pp & Reduces by 5.3 pp \\
+    Re-ask answer changes: recorded versus shared & 15.5\% versus 27.6\% & Little difference observed \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Adoption and Accuracy}
+The adoption increase includes harmful revisions, not just successful
+corrections. Under neutral framing, Qwen corrected approximately 85--89\% of
+initially incorrect answers while abandoning 19--20\% of initially correct
+answers. Controlling language raised its harmful revision rate to 39--40\%.
+Qwen was more stable than Llama in retaining initially correct answers under
+both neutral and controlling framing. Because each model generated its own
+disagreement events, this comparison is descriptive rather than evidence of
+an intrinsic difference in stability.
+Within each model's event set, directive wording therefore increased
+susceptibility to misleading counterarguments.
+
+\subsection{Attribution and Baseline Stability}
+Naming a peer changed the controlling-language effect in opposite directions:
+it amplified the effect in Llama and reduced it in Qwen, relative to presenting
+the argument without an attributed speaker. These estimates suggest that
+source attribution may alter how models respond to directive wording.
+
+Disclosure produced a separate pattern in Llama's re-ask controls. Without a
+counterargument, describing its previous answer as shared increased answer
+changes from 15.5\% to 27.6\%, compared with describing it as recorded. Qwen
+showed little difference. This result leaves open whether disclosure affects
+baseline answer stability even when it has little effect on peer-answer adoption.
 
 % ============================================================================
 % CHALLENGES & OPEN QUESTIONS (100-300 words, optional but encouraged)
@@ -128,8 +272,28 @@ Present your findings so far. Use subsections and visualizations as appropriate.
 % constraints, or conceptual challenges. Note any areas where you're still
 % figuring things out or where the path forward is uncertain.
 \section{Challenges \& Open Questions}
+The main interpretive challenge is separating responses to social context from
+ordinary instruction-following. Controlling language explicitly encourages
+adoption, so its effect may reflect compliance with a directive rather than
+social pressure. Speaker-free and stance-only controls help assess these
+explanations. Likewise, the recorded-versus-shared difference may depend on
+particular wording rather than public disclosure itself.
 
-Describe obstacles you've encountered and areas of uncertainty.
+The model comparisons also have limits. Each model generates its own
+disagreement events, so the selected questions and counterarguments differ.
+We cannot attribute the observed differences solely to model behavior without
+a matched set of events. Gemma's sample is especially small, partly because of
+difficulties obtaining responses in the required format.
+
+Answer correctness is also an incomplete measure of revision quality. A correct
+final answer does not establish that the model evaluated the counterargument
+appropriately. Because the pilots include many exploratory comparisons,
+subgroup patterns need validation in follow-up experiments.
+
+Finally, a behavioral resemblance to human social influence does not establish
+a shared psychological mechanism \cite{gupta2026anthropomorphic}. Our follow-ups
+will test whether the observed effects persist when we vary the wording and
+source of an argument while preserving its substantive content.
 
 % ============================================================================
 % NEXT STEPS (150-400 words)
@@ -138,8 +302,41 @@ Describe obstacles you've encountered and areas of uncertainty.
 % the next half of the program. What will you prioritize? What might you
 % deprioritize or cut if needed?
 \section{Next Steps}
+We will prioritize two follow-up experiments based on the attribution and
+stability differences in Table~\ref{tab:model-comparison}. Both will retain
+answer adoption, beneficial correction, and harmful revision as outcomes.
 
-Describe your planned next steps for the remainder of the program. What will you prioritize?
+\subsection{Controlling Language and Source Attribution}
+The opposite attribution patterns in Llama and Qwen motivate a closer test of
+how source identity interacts with directive language. Prior work shows that
+agent identity can affect revision \cite{choi2026identity}, while substantial
+updating can occur without an attributed speaker \cite{hu2026speakerfree}.
+We will extend the factorial comparison of neutral versus controlling language
+and named-peer versus speaker-free arguments, keeping the proposed answer and
+reasoning fixed.
+
+We also plan to compare anonymous sources and domain experts to test whether
+apparent expertise changes the framing effect. The central question is whether
+directive wording has a consistent effect across sources or whether its
+influence depends on the authority attributed to the speaker.
+
+\subsection{Recorded Versus Shared Answers}
+Llama's higher re-ask instability under shared-answer wording motivates a
+separate disclosure experiment. We will compare a plain re-ask baseline with
+private, recorded, and shared conditions, using multiple formulations of each
+statement. This will test whether the difference persists across wording
+changes or depends on specific terms.
+
+We will then introduce neutral and controlling counterarguments while holding
+their reasoning fixed, to assess whether disclosure also affects responses to
+external disagreement. Work on social context and persuasive framing informs
+this design \cite{bito2026normative,meincke2026persuading}, but the immediate
+goal is to establish how robust the pilot effect is.
+
+If these effects replicate, we will test additional model families and tasks
+beyond HotpotQA. We also plan to evaluate Inspect AI as an evaluation framework
+and compare judging approaches for open-ended responses. We will prioritize
+replication and prompt variation before expanding to a broader set of tasks.
 
 % ============================================================================
 % WORKS CITED / BIBLIOGRAPHY
@@ -152,7 +349,7 @@ Describe your planned next steps for the remainder of the program. What will you
 % Compile with: latexmk -pdf report.tex (or pdflatex -> bibtex -> pdflatex -> pdflatex)
 % Then submit both .tex and .bbl files to arXiv.
 
-\bibliographystyle{plain}
+\bibliographystyle{IEEEtran}
 \bibliography{references}
 
 \end{document}
